@@ -1,6 +1,6 @@
 # 一、前端分析
 
-![前端应用](../front/前端应用.png)
+![前端应用](../front/frontApp.png)
 
 > 目前前端开发基于react，vue框架。对应配套的有react-UI组件，vue-UI组件。
 
