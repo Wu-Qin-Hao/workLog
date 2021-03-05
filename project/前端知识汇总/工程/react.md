@@ -8,14 +8,13 @@ const refContainer = useRef(initialValue);
 
 ```javascript
 function TextInputWithFocusButton() {
-
   const inputEl = useRef(null);
 
   const onButtonClick = () => {
     // `current` 指向已挂载到 DOM 上的文本输入元素
     inputEl.current.focus();
   };
-  
+
   return (
     <>
       <input ref={inputEl} type='text' />
@@ -108,3 +107,35 @@ export default FatherComp;
 - 3.子组件使用 forwardRef 来获取传递给它的 ref; forwardRef 内函数 (props, ref) => {}，作为其第二个参数。
 - 4.通过 useImperativeHandle 自定义暴露给父组件的方法。
 - 5.父组件通过 ref 调用子组件中暴露给父组件的方法。
+
+## react 子组件通知父组件
+
+- 1.在 vue 中是通过自定义事件来完成的
+- 2.在 react 设计哲学中，组件间通信都是基于 props，所以这里同样是通过 props 传递消息，只是让父组件给子组件传递一个回调函数，在子组件中调用这个函数即可
+
+```javascript
+import { useState } from 'react';
+
+const CounterButton = (props) => {
+  const { operator, btnClick } = props;
+  return <button onClick={btnClick}>{operator}</button>
+}
+
+const App = () => {
+  const [counter, setCounter] = useState();
+
+  changeCounter(count) {
+    setCounter({
+      counter: counter + count
+    })
+  }
+
+  return (
+    <div>
+      <h2>当前计数: {counter}</h2>
+      <CounterButton operator="+1" btnClick={e => changeCounter(1)} />
+      <CounterButton operator="-1" btnClick={e => changeCounter(-1)} />
+    </div>
+  )
+}
+```
