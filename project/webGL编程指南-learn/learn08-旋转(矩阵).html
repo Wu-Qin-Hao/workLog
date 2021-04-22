@@ -21,12 +21,9 @@
   // 顶点着色器程序
   const VSHADER_SOURCE =
     `attribute vec4 a_Position;
-    uniform float u_CosB, u_SinB;
+    uniform mat4 u_xformMatrix;
     void main() {
-      gl_Position.x = a_Position.x * u_CosB - a_Position.y * u_SinB;
-      gl_Position.y = a_Position.x * u_SinB + a_Position.y * u_CosB;
-      gl_Position.z = a_Position.z;
-      gl_Position.w = 1.0;
+      gl_Position = u_xformMatrix * a_Position;
       gl_PointSize = 10.0;
     }`
 
@@ -103,14 +100,26 @@
     const radian = Math.PI * 90 / 180
     const cosB = Math.cos(radian)
     const sinB = Math.sin(radian)
-    const u_CosB = gl.getUniformLocation(gl.program, 'u_CosB')
-    const u_SinB = gl.getUniformLocation(gl.program, 'u_SinB')
-    if (!u_CosB || !u_SinB) {
-      console.log('获取u_CosB或u_SinB存储位置失败')
-      return
-    }
-    gl.uniform1f(u_CosB, cosB)
-    gl.uniform1f(u_SinB, sinB)
+    
+    // webGL中矩阵是列主序的
+    let xformMatrix = new Float32Array([
+      cosB, sinB, 0.0, 0.0,
+      -sinB, cosB, 0.0, 0.0,
+      0.0, 0.0, 1.0, 0.0,
+      0.0, 0.0, 0.0, 1.0
+    ])
+    // 将旋转矩阵传输给顶点着色器
+    let u_xformMatrix = gl.getUniformLocation(gl.program, 'u_xformMatrix');
+    gl.uniformMatrix4fv(u_xformMatrix, false, xformMatrix)
+
+    // const u_CosB = gl.getUniformLocation(gl.program, 'u_CosB')
+    // const u_SinB = gl.getUniformLocation(gl.program, 'u_SinB')
+    // if (!u_CosB || !u_SinB) {
+    //   console.log('获取u_CosB或u_SinB存储位置失败')
+    //   return
+    // }
+    // gl.uniform1f(u_CosB, cosB)
+    // gl.uniform1f(u_SinB, sinB)
 
     // 5.设置背景色（指定清空canvas的颜色）
     gl.clearColor(0.0, 1.0, 0.0, 1.0)
