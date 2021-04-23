@@ -7,11 +7,11 @@
 **Javascript语言的执行环境是单线程（single thread）**
 
 * 1.作为浏览器脚本语言，JavaScript的主要用途是与用户互动，以及操作DOM。
-
+<br>
 * 2.若以多线程的方式操作这些DOM，则可能出现操作的冲突。假设有两个线程同时操作一个DOM元素，线程1要求浏览器删除DOM，而线程2却要求修改DOM样式，这时浏览器就无法决定采用哪个线程的操作。
-
+<br>
 * 3.单线程就是指一次只能完成一件任务。如果有多个任务，就必须排队，前面一个任务完成，再执行后面一个任务。
-
+<br>
 * 4.因为JavaScript是单线程的，有一个致命问题是在某一时刻内只能执行特定的一个任务，并且会阻塞其它任务执行，为了解决这个问题，Javascript语言将任务的执行模式分成同步（Synchronous）和异步（Asynchronous），在遇到类似I/O等耗时的任务时js会采用异步操作，而此时异步操作不进入主线程、而进入"任务队列"，只有"任务队列"通知主线程，某个异步任务可以执行了，该任务才会进入主线程执行，这时就不会阻塞其它任务执行，而这种模式称为js的事件循环机制(Event Loop)。
 
 ## 同步
@@ -178,59 +178,9 @@ promise.then(function(value) {
 })
 ```
 
-## 特性
-
-### Promise 新建后就会立即执行
-
-```javascript
-let promise = new Promise(function(resolve, reject) {
-  console.log('Promise')
-  resolve()
-})
-
-promise.then(function() {
-  console.log('resolved.')
-})
-
-console.log('Hi!')
-
-// Promise
-// Hi!
-// resolved
-```
-
-上面代码中，Promise 新建后立即执行，所以首先输出的是Promise。然后，then方法指定的回调函数，将在当前脚本所有同步任务执行完才会执行，所以resolved最后输出。
-
-### 调用resolve或reject并不会终结 Promise 的参数函数的执行
-
-```javascript
-new Promise((resolve, reject) => {
-  resolve(1)
-  console.log(2)
-}).then(r => {
-  console.log(r)
-})
-
-// 2
-// 1
-```
-
-上面代码中，调用resolve(1)以后，后面的console.log(2)还是会执行，并且会首先打印出来。这是因为立即 resolved 的 Promise 是在本轮事件循环的末尾执行，总是晚于本轮循环的同步任务。
-
-一般来说，调用resolve或reject以后，Promise 的使命就完成了，后继操作应该放到then方法里面，而不应该直接写在resolve或reject的后面。所以，最好在它们前面加上return语句，这样就不会有意外。
-
-```javascript
-
-new Promise((resolve, reject) => {
-  return resolve(1)
-  // 后面的语句不会执行
-  console.log(2)
-})
-```
-
 ## Promise原型对象方法
 
-### Promise.prototype.then()
+### 1.Promise.prototype.then()
 
 * 1.Promise 实例具有then方法，也就是说，then方法是定义在原型对象Promise.prototype上的。
 * 2.then方法的第一个参数是resolved状态的回调函数，第二个参数是rejected状态的回调函数，它们都是可选的。
@@ -250,7 +200,7 @@ getJSON("/post/1.json")
 
 上面代码中，第一个then方法指定的回调函数，返回的是另一个Promise对象。这时，第二个then方法指定的回调函数，就会等待这个新的Promise对象状态发生变化。如果变为resolved，就调用第一个回调函数，如果状态变为rejected，就调用第二个回调函数。
 
-### Promise.prototype.catch()
+### 2.Promise.prototype.catch()
 
 * 1.Promise 实例具有catch方法，也就是说，catch方法是定义在原型对象Promise.prototype上的。
 * 2.Promise.prototype.catch()方法是.then(null, rejection)或.then(undefined, rejection)的别名，用于指定发生错误时的回调函数。
@@ -443,8 +393,401 @@ someAsyncThing().then(function() {
 
 上面代码中，第二个catch()方法用来捕获前一个catch()方法抛出的错误。
 
-## Promise.prototype.finally()
+## 3.Promise.prototype.finally()
 
 * 1.Promise 实例具有finally方法，也就是说，finally方法是定义在原型对象Promise.prototype上的。
 * 2.finally()方法用于指定不管 Promise 对象最后状态如何，都会执行的操作。
 * 3.finally方法的回调函数不接受任何参数，这意味着没有办法知道，前面的 Promise 状态到底是fulfilled还是rejected。这表明，finally方法里面的操作，应该是与状态无关的，不依赖于 Promise 的执行结果。
+
+finally 本质上是then方法的特例
+
+```javascript
+promise.finally(() => {
+  // code
+})
+
+// 等同于
+promise.then((result) => {
+  // code
+  return result
+}, (error) => {
+  // code
+  throw error
+})
+
+// 上面的代码中，如果不使用finally方法，同样的语句需要为成功和失败两种情况各写一次，有了finally方法，则只需要写一次
+```
+
+模拟finally实现
+
+```javascript
+Promise.prototype.finally = function (callback) {
+  let P = this.constructor
+  return this.then((value) => {
+    P.resolve(callback()).then(() => {return value})
+  }, (reason) => {
+    P.resolve(callback()).then(() => {throw reason})
+  })
+}
+```
+
+## Promise静态方法
+
+### 1.Promise.all(iterable)
+
+> iterable参数是一个可迭代对象
+
+> Promise.all()方法接受一个数组作为参数，p1，p2，p3都是Promise实例
+
+> Promise.all()将多个 Promise 实例，包装成一个新的 Promise 实例
+
+> Promise.all()方法的参数可以不是数组，但必须具有Iterator接口，且返回的每个成员都是Promise实例
+
+```javascript
+const p = Promise.all([p1, p2, p3])
+```
+
+**p的状态由p1，p2，p3决定，分成两种情况**
+
+* 1.只有p1，p2，p3的状态都变成fulfilled，p的状态才会变成fulfiled，此时p1、p2、p3的返回值组成一个数组，传递给p的回调函数。
+
+* 2.只要p1、p2、p3之中有一个被rejected，p的状态就变成rejected，此时第一个被reject的实例的返回值，会传递给p的回调函数。
+
+**注意Promise.all()的catch方法**
+
+```javascript
+const p1 = new Promise((resolve, reject) => {
+  resolve('hello');
+}).then(result => result).catch(e => e);
+
+const p2 = new Promise((resolve, reject) => {
+  throw new Error('报错了');
+}).then(result => result).catch(e => e);
+
+Promise.all([p1, p2])
+.then(result => console.log(result))
+.catch(e => console.log(e));
+```
+
+* 1.p1会resolved，p2会rejected
+* 2.p2有组件的catch方法，该方法返回一个新的Promise实例，p2会指向这个实例
+* 3.该实例执行完catch方法，也会变成resolved，导致Promise.all()方法参数里面两个实例都会resolved
+* 4.因此会调用then方法指定的回调函数，不会调用catch方法指定的回调函数
+
+### 1.Promise.allSettled(iterable)
+
+> iterable参数是一个可迭代对象
+> Promise.allSettled()方法接受一个数组作为参数，p1，p2，p3都是Promise实例
+> Promise.allSettled()将多个 Promise 实例，包装成一个新的 Promise 实例
+
+```javascript
+const p = Promise.allSettled([p1, p2, p3])
+```
+
+**p的状态总是fulfilled**
+
+* 1.只要等到所有这些参数实例都返回结果，不管是fulfilled还是rejected，就会执行allSettled，一旦结束，状态总是fulfilled，不会变成rejected
+* 2.状态变成fulfilled后，Promise 的监听函数接收到的参数是一个数组，每个成员对应一个传入Promise.allSettled()的 Promise 实例。
+
+```javascript
+const resolved = Promise.resolve(42)
+const rejected = Promise.reject(-1)
+
+const allSettledPromise = Promise.allSettled([resolved, rejected])
+
+allSettledPromise.then(function (results) {
+  console.log(results)
+})
+// [
+//    { status: 'fulfilled', value: 42 },
+//    { status: 'rejected', reason: -1 }
+// ]
+
+// 1.results数组的每个成员都是一个对象，对应传入Promise.allSettled()的两个 Promise 实例
+// 2.每个对象都有status属性，该属性的值只可能是字符串fulfilled或字符串rejected
+// 3.fulfilled时，对象有value属性，rejected时有reason属性，对应两种状态的返回值
+```
+
+**allSettled解决的应用场景**
+
+当不关心异步操作的结果，只关注异步操作是否结束时，就可以使用allSettled
+
+### 3.Promise.any(iterable)
+
+> iterable参数是一个可迭代对象
+
+> Promise.any()方法接受一个数组作为参数，p1，p2，p3都是Promise实例
+
+> Promise.any()将多个 Promise 实例，包装成一个新的 Promise 实例
+
+```javascript
+const p = Promise.any([p1, p2, p3])
+```
+
+* 1.只要参数实例有一个变成fulfilled状态，包装实例就会变成fulfilled状态
+* 2.如果所有参数实例都变成rejected状态，包装实例就会变成rejected状态
+
+```javascript
+Promise.any([p1, p2, p3]).then(
+  (first) => {
+    // Any of the [p1, p2, p3] was fulfilled.
+  },
+  (error) => {
+    // All of the [p1, p2, p3] were rejected.
+  }
+)
+
+// 示例
+var resolved = Promise.resolve(42);
+var rejected = Promise.reject(-1);
+var alsoRejected = Promise.reject(Infinity);
+
+Promise.any([resolved, rejected, alsoRejected]).then(function (result) {
+  console.log(result); // 42
+});
+
+Promise.any([rejected, alsoRejected]).catch(function (results) {
+  console.log(results); // [-1, Infinity]
+});
+```
+
+### 4.Promise.race(iterable)
+
+> iterable参数是一个可迭代对象
+
+> Promise.any()方法接受一个数组作为参数，p1，p2，p3都是Promise实例
+
+> Promise.any()将多个 Promise 实例，包装成一个新的 Promise 实例
+
+> 当iterable参数里的任意一个子promise被成功或失败后，父promise马上也会用子promise的成功返回值或失败详情作为参数调用父promise绑定的相应句柄，并返回该promise对象。
+
+```javascript
+const p = Promise.race([p1, p2, p3])
+// race单词是比速度的意思
+// 只要p1，p2，p3中有一个示例率先改变状态，p的状态就跟着改变。先改变的Promise实例的返回值，就传递给p的回调函数
+```
+
+```javascript
+// 如果指定时间内没获取结果，就执行超时失败，将 Promise 的状态变为reject，否则变为resolve
+const p = Promise.race([
+  fetch('/resource-that-may-take-a-while'),
+  new Promise(function (resolve, reject) {
+    setTimeout(() => reject(new Error('request timeout')), 5000)
+  })
+]);
+
+p.then(console.log).catch(console.error);
+```
+### 5.Promise.resolve(value)
+
+> value参数是一个将被Promise对象解析的参数，也可以是一个Promise对象，或者是一个thenable
+
+> 返回一个带着给定值解析过的Promise对象，如果参数本身就是一个Promise对象，则直接返回这个Promise对象
+
+**Promise.resolve()方法的参数分成四种情况**
+
+* 1.Promise实例
+
+> 如果参数是 Promise 实例，那么Promise.resolve将不做任何修改、原封不动地返回这个实例
+
+* 2.thenable对象
+
+thenable对象指的是具有then方法的对象，比如下面这个对象
+
+```javascript
+let thenable = {
+  then: function(resolve, reject) {
+    resolve()
+  }
+}
+```
+
+Promise.resolve()方法会将这个对象转为 Promise 对象，然后就立即执行thenable对象的then()方法
+
+```javascript
+let thenable = {
+  then: function(resolve, reject) {
+    resolve(42)
+  }
+}
+
+let p1 = Promise.resolve(thenable)
+p1.then(function (value) {
+  console.log(value)  // 42
+})
+
+// thenable对象的then()方法执行后，对象p1的状态就变为resolved，从而立即执行最后那个then()方法指定的回调函数，输出42
+```
+
+* 3.不是具有then()方法的对象，或根本就不是对象
+
+如果参数是一个原始值，或者是一个不具有then()方法的对象，则Promise.resolve()方法返回一个新的 Promise 对象，状态为resolved
+
+```javascript
+const p = Promise.resolve('Hello')
+
+p.then(function (s) {
+  console.log(s) // Hello
+})
+
+// 字符串'Hello'不属于异步操作（判断方法是字符串对象不具有 then 方法），返回 Promise 实例的状态从一生成就是resolved，所以回调函数会立即执行
+
+// Promise.resolve()方法的参数，会同时传给回调函数
+```
+
+* 4.不带任何参数
+
+> Promise.resolve()方法允许调用时不带参数，直接返回一个resolved状态的 Promise 对象
+
+```javascript
+setTimeout(function () {
+  console.log('three');
+}, 0);
+
+Promise.resolve().then(function () {
+  console.log('two');
+});
+
+console.log('one');
+
+// one
+// two
+// three
+
+// console.log('one')是立即执行
+// Promise.resolve()在本轮“事件循环”结束时执行
+// setTimeout(fn, 0)在下一轮“事件循环”开始时执行
+```
+
+**立即resolve()的 Promise 对象，是在本轮“事件循环”（event loop）的结束时执行，而不是在下一轮“事件循环”的开始时**
+
+### 6.Promise.reject(reason)
+
+> reason表示Promise被拒绝的原因
+
+> 返回一个给定原因了的被拒绝的 Promise
+
+Promise.reject(reason)方法也会返回一个新的 Promise 实例，该实例的状态为rejected
+
+```javascript
+const p = Promise.reject('出错了');
+// 等同于
+const p = new Promise((resolve, reject) => reject('出错了'))
+
+p.then(null, function (s) {
+  console.log(s) // 出错了
+});
+
+// 1.生成一个 Promise 对象的实例p，状态为rejected，回调函数会立即执行
+// 2.Promise.reject()方法的参数，会原封不动地作为reject的理由，变成后续方法的参数即Promise.reject()方法的参数是一个字符串，后面catch()方法的参数e就是这个字符串
+```
+
+## 容易理解出错的点
+
+### 1.Promise 新建后就会立即执行
+
+```javascript
+let promise = new Promise(function(resolve, reject) {
+  console.log('Promise')
+  resolve()
+})
+
+promise.then(function() {
+  console.log('resolved.')
+})
+
+console.log('Hi!')
+
+// Promise
+// Hi!
+// resolved
+```
+
+上面代码中，Promise 新建后立即执行，所以首先输出的是Promise。然后，then方法指定的回调函数，将在当前脚本所有同步任务执行完才会执行，所以resolved最后输出。
+
+### 2.调用resolve或reject并不会终结 Promise 的参数函数的执行
+
+```javascript
+new Promise((resolve, reject) => {
+  resolve(1)
+  console.log(2)
+}).then(r => {
+  console.log(r)
+})
+
+// 2
+// 1
+```
+
+上面代码中，调用resolve(1)以后，后面的console.log(2)还是会执行，并且会首先打印出来。这是因为立即 resolved 的 Promise 是在本轮事件循环的末尾执行，总是晚于本轮循环的同步任务。
+
+一般来说，调用resolve或reject以后，Promise 的使命就完成了，后继操作应该放到then方法里面，而不应该直接写在resolve或reject的后面。所以，最好在它们前面加上return语句，这样就不会有意外。
+
+```javascript
+
+new Promise((resolve, reject) => {
+  return resolve(1)
+  // 后面的语句不会执行
+  console.log(2)
+})
+```
+
+# Generator
+
+> Generator 函数是 ES6 提供的一种异步编程解决方案，语法行为与传统函数完全不同。
+
+> Generator 函数有多种理解角度。语法上，首先可以把它理解成，Generator 函数是一个状态机，封装了多个内部状态。
+
+ES6 诞生以前，异步编程的方法，大概有下面四种。
+
+* 1.回调函数
+* 2.事件监听
+* 3.发布/订阅
+* 4.Promise 对象
+
+Generator 函数将 JavaScript 异步编程带入了一个全新的阶段。
+
+因为Generator不是异步编程的终极阶段，可以不用深入理解，具体看阮一峰老师的介绍 https://es6.ruanyifeng.com/#docs/generator
+
+# async
+
+> async的前身是Generator，所以它是Generator函数的语法糖实现
+
+> async里返回的还是Promise，所以Promise是基础
+
+> async函数完全可以看作多个异步操作，包装成的一个 Promise 对象，而await命令就是内部then命令的语法糖
+
+```javascript
+const fs = require('fs');
+
+const readFile = function (fileName) {
+  return new Promise(function (resolve, reject) {
+    fs.readFile(fileName, function(error, data) {
+      if (error) return reject(error);
+      resolve(data);
+    });
+  });
+};
+
+// Generator实现
+const gen = function* () {
+  const f1 = yield readFile('/etc/fstab');
+  const f2 = yield readFile('/etc/shells');
+  console.log(f1.toString());
+  console.log(f2.toString());
+};
+
+// async实现
+const asyncReadFile = async function () {
+  const f1 = await readFile('/etc/fstab');
+  const f2 = await readFile('/etc/shells');
+  console.log(f1.toString());
+  console.log(f2.toString());
+};
+
+// 对比发现，async函数对 Generator 函数有一下四个优点
+// 1.内置执行器；Generator 函数的执行必须靠执行器，所以才有了co模块，而async函数自带执行器
+// 2.更好的语义；async和await，比起星号和yield，语义更清楚了
+// 3.更广的适用性
+// 4.返回值是 Promise
+```
