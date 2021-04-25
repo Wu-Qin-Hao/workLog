@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<style>
+  .outerStyle{
+    width:520px;
+    padding:15px;
+    margin:15px;
+    border:1px solid red;
+    color:red;
+  }
+  .outerStyle1{
+    width:520px;
+    padding:15px;
+    margin:15px;
+    border:1px solid green;
+    color:green;
+  }
+  .outerStyle2{
+    width:520px;
+    padding:15px;
+    margin:15px;
+    border:1px solid purple;
+    color:purple;
+  }
+  .outerStyle3{
+    width:520px;
+    padding:15px;
+    margin:15px;
+    border:1px solid black;
+    color:black;
+  }
+</style>
+<body>
+  <div class="once outerStyle">
+    once: true 只调用一次
+  </div>
+  <div class="onceNone outerStyle">
+    onceNone: false 可调用多次
+  </div>
+  <div class="capture outerStyle1">
+    capture 捕获阶段 & 冒泡阶段
+  </div>
+  <div class="passive outerStyle2">
+    passive: true 表示 listener 永远不会调用 preventDefault()，如果调用了则抛出警告
+  </div>
+  <div class="passiveNone outerStyle2">
+    passive: false 表示 listener 可以调用 preventDefault()
+  </div>
+
+  <div class="doubleBind outerStyle3">
+    绑定多个事件
+  </div> 
+  <button onclick="removeDoubleBind1Click()"> 删除绑定事件 click doubleBind1</button>
+</body>
+<script>
+  let once  = document.getElementsByClassName('once')[0]
+  let onceNone  = document.getElementsByClassName('onceNone') [0]
+  // once: Boolean，表示 listener 在添加之后最多只调用一次。如果是 true， listener 会在其被调用之后自动移除。
+  once.addEventListener('click', onceHandler, {once: true})
+  function onceHandler(event) {
+    alert('once: true 只调用一次')
+  }
+  onceNone.addEventListener('click', noneOnceHandler, {once: false})
+  function noneOnceHandler(event){
+    alert('onceNone: false 可调用多次')
+  }
+
+  let capture  = document.getElementsByClassName('capture')[0]
+  // capture: Boolean，表示 listener 会在该类型的事件捕获阶段还是冒泡阶段时触发。捕获阶段先触发，冒泡阶段后触发
+  capture.addEventListener('click', captureHandler, {capture: true})
+  function captureHandler(event) {
+    alert('capture: true 捕获阶段')
+  }
+  capture.addEventListener('click', noneCaptureHandler, {capture: false})
+  function noneCaptureHandler(event) {
+    alert('capture: false 冒泡阶段')
+  }
+
+  let passive  = document.getElementsByClassName('passive')[0]
+  let passiveNone  = document.getElementsByClassName('passiveNone') [0]
+  // passive: Boolean，表示 listener 永远不会调用 preventDefault()。如果 listener 仍然调用了这个函数，客户端将会忽略它并抛出一个控制台警告。
+  passive.addEventListener('click', passiveHandler, {passive: true})
+  function passiveHandler(event) {
+    // Unable to preventDefault inside passive event listener invocation.
+    event.preventDefault()
+    alert('passive: true 表示 listener 永远不会调用 preventDefault()，如果调用了则抛出警告')
+  }
+  passiveNone.addEventListener('click', nonePassiveHandler, {passive: false})
+  function nonePassiveHandler(event) {
+    event.preventDefault()
+    alert('passive: false 表示 listener 可以调用 preventDefault()')
+  }
+
+  // 绑定多个事件测试
+  let doubleBind  = document.getElementsByClassName('doubleBind')[0]
+  doubleBind.addEventListener('click', doubleBind1, false)
+  function doubleBind1(event) {
+    alert('doubleBind1')
+  }
+  doubleBind.addEventListener('click', doubleBind2, false)
+  function doubleBind2(event) {
+    alert('doubleBind2')
+  }
+  doubleBind.addEventListener('mouseup', doubleBind1, false)
+  doubleBind.addEventListener('click', doubleBind2, false)
+
+  // 删除绑定的事件测试
+  function removeDoubleBind1Click () {
+    // doubleBind.removeEventListener('click', doubleBind1, false)
+    // doubleBind.removeEventListener('click', doubleBind1, true)
+    doubleBind.removeEventListener('click', doubleBind1, {capture: false})
+    // doubleBind.removeEventListener('click', doubleBind1, {capture: true})
+    // doubleBind.removeEventListener('click', doubleBind1, {once: false})
+    // doubleBind.removeEventListener('click', doubleBind1, {once: true})
+    // doubleBind.removeEventListener('click', doubleBind1, {passive: false})
+    // doubleBind.removeEventListener('click', doubleBind1, {passive: true})
+  }
+</script>
+</html>
