@@ -1,3 +1,5 @@
+https://w3c.github.io/touch-events/#mouse-events
+
 # MouseEvent鼠标事件
 
 > MouseEvent 接口指用户与指针设备( 如鼠标 )交互时发生的事件。使用此接口的常见事件包括：click，dblclick，mouseup，mousedown。
