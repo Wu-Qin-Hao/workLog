@@ -732,6 +732,92 @@ new Promise((resolve, reject) => {
 })
 ```
 
+## 可取消的promise
+
+**一个promise在执行，然后在另一块代码中手动取消这个promise**
+
+```javascript
+// 1.一个标准简单的promise
+const promise = new Promise((resolve, reject) => {
+  // ... some code
+  if (/* 异步操作成功 */) {
+    resolve(value)
+  } else {
+    reject(error)
+  }
+})
+
+// 2.增加一个是否取消的promise判断
+let cancelPromise = false
+const promise = new Promise((resolve, reject) => {
+  // ... some code
+  if (/* 异步操作成功 */) {
+    cancelPromise ? reject({isCanceled: true}) : resolve(value)
+  } else {
+    cancelPromise ? reject({isCanceled: true}) : reject(error)
+  }
+})
+
+// 3.封装函数
+// 3.1 第2步中内聚性不高，不符合高内聚，低耦合的代码原则。将其封装到同一个函数内
+const makeCancelable = () => {
+  let cancelPromise = false
+  const wrappedPromise = new Promise((resolve, reject) => {
+    // ... some code
+    if (/* 异步操作成功 */) {
+      cancelPromise ? reject({isCanceled: true}) : resolve(value)
+    } else {
+      cancelPromise ? reject({isCanceled: true}) : reject(error)
+    }
+  })
+
+  return {
+    promise: wrappedPromise,
+    cancel() {
+      cancelPromise: true
+    }
+  }
+}
+
+// 3.2 在第3.1步中，虽然函数可以设置操作取消promise了，但是promise执行操作的代码只能写在函数内部，不通用，将其改进，promise可传参
+const makeCancelable = (promise) => {
+  let cancelPromise = false
+  const wrappedPromise = new Promise((resolve, reject) => {
+    promise.then((value) => {
+      cancelPromise ? reject({isCanceled: true}) : resolve(value)
+    })
+    promise.catch((error) => {
+      cancelPromise ? reject({isCanceled: true}) : reject(error)
+    })
+  })
+
+  return {
+    promise: wrappedPromise,
+    cancel() {
+      cancelPromise: true
+    }
+  }
+}
+
+// 4.举例使用可取消的promise
+const somePromise = new Promise((resolve, reject) => {
+  // ... some code
+  if (/* 异步操作成功 */) {
+    resolve(value)
+  } else {
+    reject(error)
+  }
+}) // 创建一个异步操作
+
+const cancelable = makeCancelable(somePromise) // 为异步操作添加可取消的功能
+
+cancelable.promise
+  .then(() => console.log('resolved'))
+  .catch(({isCanceled, ...error}) => console.log('isCanceled', isCanceled))
+
+cancelable.cancel() // 取消异步操作
+```
+
 # Generator
 
 > Generator 函数是 ES6 提供的一种异步编程解决方案，语法行为与传统函数完全不同。
@@ -791,3 +877,47 @@ const asyncReadFile = async function () {
 // 3.更广的适用性
 // 4.返回值是 Promise
 ```
+
+**async/await的目的是为了简化使用基于promise的API时所需的语法。async/await的行为就好像搭配使用了生成器和promise。**
+
+## 特点
+
+* 1.async函数一定会返回一个promise对象。如果一个async函数的返回值看起来不是promise，那么它将会被隐式地包装在一个promise中。
+
+```javascript
+async function foo() {
+  return 1
+}
+
+// =========等价于=========
+
+function foo() {
+  return Promise.resolve(1)
+}
+```
+
+## 使用async函数重写promise链
+
+> 使用async/await可以节约代码，不需要写.then，不需要写匿名函数处理promise的resolve值，也不需要定义多余的data变量，还避免了嵌套代码。这些小的优点会迅速累计起来，这在之后的编写代码中会变得更加明显。
+
+```javascript
+// 很可能会遇到这样的场景，调用promise1，使用promise1返回的结果去调用promise2，然后使用两者的结果去调用promise3
+
+const makeRequest = () => {
+  return promise1().then((value1) => {
+    return promise2(value1).then((value2) => {
+      return promise3(value1, value2)
+    })
+  })
+}
+
+// 使用async/await的话，代码会变得非常简单和直观，将会解放代码嵌套，异步代码阅读起来像同步代码一样便于理解
+const makeRequest = async () => {
+  const value1 = await promise1()
+  const value2 = await promise2(value1)
+  return promise3(value1, value2)
+}
+
+```
+
+更多优点请查看这篇文章 https://hackernoon.com/6-reasons-why-javascripts-async-await-blows-promises-away-tutorial-c7ec10518dd9
