@@ -39,7 +39,7 @@
     const rect = event.target.getBoundingClientRect()
 
     const x3 = ((x - rect.left) - (rect.width / 2)) / (rect.width / 2)
-    const y3 = -((y - rect.top) - (rect.height / 2)) / (rect.height / 2)
+    const y3 = ((y - rect.top) - (rect.height / 2)) / -(rect.height / 2)
 
     return {
       x: x3,
