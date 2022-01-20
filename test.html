@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script src="http: //gosspublic.alicdn.com/aliyun-oss-sdk-4.12.2.min.js"></script>
+</head>
+
+<body>
+  <input type="file" id="file" />
+  <input type="button" id="cancelupload" value="cancelupload" />
+  <input type="button" id="keepupload" value="keepupload" />
+  <script>
+    var checkpoint_temp;
+    var ifcancel = false;
+    var exitTime;
+    var file;
+    var storeAs;
+    var client = newOSS.Wrapper({
+      region: 'oss-cn-hangzhou',
+      accessKeyId: ' ',
+      accessKeySecret: ' ',
+      bucket: 'dongchics'
+    });
+
+    document.getElementById('file').addEventListener('change', function (e) {
+      file = e.target.files[0];
+      storeAs = 'upload-file';
+      console.log(file.name + ' => ' + storeAs);
+      var now = new Date();
+      exitTime = now.getTime() + 10000;
+      multitest(client, storeAs, file, checkpoint_temp);
+
+    });
+
+    document.getElementById('cancelupload').addEventListener('click', function (e) { ifcancel = true });
+    document.getElementById('keepupload').addEventListener('click', function (e) {
+      ifcancel = false;
+      multitest(client, storeAs, file, checkpoint_temp);
+    });
+
+    function cancel(client) {
+      if (ifcancel) {
+        var now1 = newDate();
+        varnowtime = now1.getTime();
+        client.cancel();
+        console.log("cancel+++now.getTime:" + nowtime);
+        console.log("exitTime:" + exitTime);
+
+      }
+    }
+
+    function multitest(ossClient, storeAs, file, cpt) {
+      //console.log(file.name + ' => ' + storeAs);
+      if (cpt) {
+        console.log("multitest with cpt")
+        ossClient.multipartUpload(storeAs, file, {
+          parallel: 2,
+          checkpoint: cpt,
+          progress: function* (percent, cpt) {
+            console.log('Progress: ' + percent);
+            checkpoint_temp = cpt;
+            cancel(client);
+          }
+        }).then(function (result) {
+          console.log(result);
+        }).catch(function (err) {
+          console.log(err);
+          if (!ifcancel) {
+            multipartUploadWithSts(storeAs, file, checkpoint_temp);
+          }
+        });
+      } else {
+        console.log("multitest without cpt")
+        ossClient.multipartUpload(storeAs, file, {
+          parallel: 2,
+          progress: function* (percent, cpt) {
+            console.log('Progress: ' + percent);
+            checkpoint_temp = cpt;
+            cancel(client);
+          }
+        }).then(function (result) {
+          console.log(result);
+        }).catch(function (err) {
+          console.log(err);
+          if (!ifcancel) {
+            multipartUploadWithSts(storeAs, file, checkpoint_temp);
+          }
+
+        });
+      }
+    }
+  </script>
+</body>
+
+</html>
