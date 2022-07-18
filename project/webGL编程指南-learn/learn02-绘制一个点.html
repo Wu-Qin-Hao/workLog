@@ -1,63 +1,130 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
-  <script src="./help.js"></script>
-</head>
-
-<body>
-  <div style="display: flex; justify-content: center;">
-    <canvas id="glcanvas" width="640" height="480"></canvas>
-  </div>
-</body>
-
+  <body>
+    <div style="display: flex; justify-content: center">
+      <canvas id="glcanvas" width="640" height="480"></canvas>
+    </div>
+  </body>
 </html>
 
 <script>
+  // 初始化着色器程序，让WebGL知道如何绘制我们的数据
+  function initShaders(gl, vshader, fshader) {
+    // 创建指定类型的着色器
+    var vertexShader = loadShader(gl, gl.VERTEX_SHADER, vshader);
+    var fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fshader);
+    if (!vertexShader || !fragmentShader) {
+      return null;
+    }
 
+    // s4. 创建 WebGLProgram
+    var program = gl.createProgram();
+    if (!program) {
+      return null;
+    }
+
+    // s5. 把 WebGLShader 添加到 WebGLProgram
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+
+    // s6. 链接给入的 WebGLProgram 对象，从而完成为程序的片元和顶点着色器准备GPU代码的过程
+    gl.linkProgram(program);
+
+    // 检查链接的结果
+    var linked = gl.getProgramParameter(program, gl.LINK_STATUS); // 返回WebGLProgram程序对象的信息
+    if (!linked) {
+      var error = gl.getProgramInfoLog(program); // 返回 WebGLProgram 对象的信息日志
+      console.log("Failed to link program: " + error);
+      gl.deleteProgram(program); // 删除 WebGLProgram
+      gl.deleteShader(fragmentShader); // 删除 WebGLShader
+      gl.deleteShader(vertexShader); // 删除 WebGLShader
+      return null;
+    }
+
+    if (!program) {
+      console.log("Failed to create program");
+      return false;
+    }
+
+    // s7. 将定义好的 WebGLProgram 对象添加到当前的渲染状态中
+    gl.useProgram(program);
+
+    return true;
+  }
+
+  // 创建指定类型的着色器，上传source源码并编译
+  function loadShader(gl, type, source) {
+    // s1. 创建一个 WebGLShader 着色器对象
+    var shader = gl.createShader(type);
+    if (shader == null) {
+      console.log("unable to create shader");
+      return null;
+    }
+
+    // s2. 设置 WebGLShader 着色器（顶点着色器及片元着色器）的GLSL程序代码。
+    gl.shaderSource(shader, source);
+
+    // s3. 编译一个GLSL着色器，使其成为为二进制数据，然后就可以被WebGLProgram对象所使用.
+    gl.compileShader(shader);
+
+    // 检查编译结果
+    var compiled = gl.getShaderParameter(shader, gl.COMPILE_STATUS); // 返回着色器的信息
+    if (!compiled) {
+      var error = gl.getShaderInfoLog(shader); // 返回 WebGLShader 对象的信息日志
+      console.log("Failed to compile shader: " + error);
+      gl.deleteShader(shader); // 删除 WebGLShader
+      return null;
+    }
+
+    return shader;
+  }
+</script>
+
+<script>
   // 顶点着色器程序
-  const VSHADER_SOURCE = 
-  `void main() {
-    gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
-    gl_PointSize = 10.0;
-  }`
+  const VSHADER_SOURCE = `void main() {
+    gl_Position = vec4(0.0, 0.0, 0.0, 1.0); // 设置坐标
+    gl_PointSize = 10.0; // 设置尺寸
+  }`;
 
   // 片元着色器程序
-  const FSHADER_SOURCE = 
-  `void main() {
-    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-  }`
+  const FSHADER_SOURCE = `void main() {
+    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); // 设置颜色
+  }`;
 
   function main() {
     // 1.获取canvas元素
-    const canvas = document.getElementById('glcanvas')
+    const canvas = document.getElementById("glcanvas");
 
     // 2.获取webgl绘图上下文
-    const gl = canvas.getContext('webgl')
+    const gl = canvas.getContext("webgl");
 
     if (!gl) {
-      alert('不支持webgl')
-      return
+      alert("不支持webgl");
+      return;
     }
 
-    // 初始化着色器(封装在help.js里)
+    // 初始化着色器
     if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
-      console.log('着色器初始化失败')
-      return
+      console.log("着色器初始化失败");
+      return;
     }
 
     // 3.设置背景色（指定清空canvas的颜色）
-    gl.clearColor(0.0, 1.0, 0.0, 1.0)
+    gl.clearColor(0.0, 1.0, 0.0, 1.0);
 
     // 4.清空canvas
-    gl.clear(gl.COLOR_BUFFER_BIT)
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
     // 5.绘制一个点
-    gl.drawArrays(gl.POINTS, 0, 1)
+    gl.drawArrays(gl.POINTS, 0, 1);
   }
 
-  main()
+  main();
 </script>

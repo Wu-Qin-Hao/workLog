@@ -27,42 +27,6 @@
     gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
   }`;
 
-  // 顶点缓冲对象（VBO）流程封装
-  function initVertexBuffers(gl) {
-    let vertices = new Float32Array([
-      -0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, -0.5,
-    ]);
-
-    // 创建缓冲区对象
-    let vertexBuffer = gl.createBuffer();
-    if (!vertexBuffer) {
-      console.log("创建buffer Object缓冲区对象失败！");
-      return -1;
-    }
-
-    // 将缓冲区对象绑定到目标
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-
-    // 向缓冲区对象中写入数据
-    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-
-    // 获取attribute 变量的存储位置
-    const a_Position = gl.getAttribLocation(gl.program, "a_Position");
-    if (a_Position < 0) {
-      console.log("获取a_Position的存储位置失败!");
-      return -1;
-    }
-
-    // 将缓冲区对象分配给a_Position变量
-    gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 0, 0);
-
-    // 连接a_Position变量与分配给他的缓冲区对象
-    gl.enableVertexAttribArray(a_Position);
-
-    let n = vertices.length / 2;
-    return n;
-  }
-
   function main() {
     // 1.获取canvas元素
     const canvas = document.getElementById("glcanvas");
@@ -81,12 +45,56 @@
       return;
     }
 
-    // 3.设置顶点位置
-    let n = initVertexBuffers(gl);
-    if (n < 0) {
-      console.log("设置顶点位置失败");
-      return;
+    // let vertices = new Float32Array([
+    //   -0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, -0.8,
+    // ]);
+
+    // 创建缓冲区对象
+    let vertexBuffer = gl.createBuffer();
+    if (!vertexBuffer) {
+      console.log("创建buffer Object缓冲区对象失败！");
+      return -1;
     }
+
+    // 将缓冲区对象绑定到目标
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+
+    let verticesArr = [
+      new Float32Array([-0.1, 0.1]),
+      new Float32Array([-0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, -0.5]),
+      new Float32Array([-0.8, 0.8]),
+    ];
+
+    debugger;
+    // 向缓冲区对象中写入数据
+    gl.bufferData(gl.ARRAY_BUFFER, 12 * 4, gl.STATIC_DRAW);
+
+    let offSet = 0;
+    for (let i = 0; i < verticesArr.length; i++) {
+      // 向缓冲区对象中写入数据
+      gl.bufferSubData(gl.ARRAY_BUFFER, offSet, verticesArr[i]);
+      offSet += verticesArr[i].length;
+    }
+
+    // 获取attribute 变量的存储位置
+    const a_Position = gl.getAttribLocation(gl.program, "a_Position");
+    if (a_Position < 0) {
+      console.log("获取a_Position的存储位置失败!");
+      return -1;
+    }
+
+    // 将缓冲区对象分配给a_Position变量
+    gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 0, 0);
+
+    // 连接a_Position变量与分配给他的缓冲区对象
+    gl.enableVertexAttribArray(a_Position);
+
+    // let n = vertices.length / 2;
+
+    // if (n < 0) {
+    //   console.log("设置顶点位置失败");
+    //   return;
+    // }
 
     // 4.设置背景色（指定清空canvas的颜色）
     gl.clearColor(0.0, 1.0, 0.0, 1.0);
@@ -102,7 +110,7 @@
     // gl.TRIANGLE_STRIP: 绘制一个三角带。
     // gl.TRIANGLE_FAN: 绘制一个三角扇。
     // gl.TRIANGLES: 绘制一系列三角形。每三个点作为顶点。
-    gl.drawArrays(gl.POINTS, 0, n);
+    gl.drawArrays(gl.POINTS, 0, 1);
   }
 
   main();
