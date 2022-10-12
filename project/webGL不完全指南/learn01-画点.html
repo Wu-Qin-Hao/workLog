@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      canvas {
+        border: 1px solid #000000;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="point" style="width: 300px; height: 300px"> </canvas>
+    <script id="vertex_shader" type="myshader">
+      // Vertex Shader
+      precision mediump int;
+      precision mediump float;
+
+      attribute vec2 a_PointVertex;
+
+      void main() {
+        gl_Position = vec4(a_PointVertex, 0.0, 1.0);
+        gl_PointSize = 3.0;
+      }
+    </script>
+
+    <script id="fragment_shader" type="myshader">
+      // Fragment shader
+      precision mediump int;
+      precision mediump float;
+
+      void main() {
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+      }
+    </script>
+
+    <script>
+      var pointCanvas = document.getElementById("point"); // pointCanvas 就是我们的必需品-纸
+
+      var gl = pointCanvas.getContext("webgl", {
+        preserveDrawingBuffer: true,
+      }); // gl 就是笔了
+
+      // ---------------------------生成圆的数据------------------------
+      var pointCount = 360;
+      var pointData = [];
+      var loop = 0;
+      var alpha = 0; // 注意，这里的 α 单位是弧度，关于这个要温习一下初中数学
+      var step = (2 * Math.pi) / 360; // 每一次增加的弧度 (1°)
+      var x, y;
+      for (loop = 0; loop < pointCount; loop++) {
+        alpha = loop * step;
+        x = Math.cos(alpha);
+        y = Math.sin(alpha);
+        pointData.push(x);
+        pointData.push(y);
+        // pointData.push([x,y]); WebGL 不喜欢这种数据格式
+      }
+      // ---------------------------生成圆的数据------------------------
+
+      // ---------------------------将圆的坐标传进gl（显卡）---------------------
+      var pointArray = new Float32Array(pointData);
+      var buffer_id = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer_id);
+      gl.bufferData(gl.ARRAY_BUFFER, pointArray, gl.STATIC_DRAW);
+      // ---------------------------将圆的坐标传进gl（显卡）---------------------
+
+      // ---------------------------处理顶点着色器------------------------------
+      var vertex_shader_code =
+        document.getElementById("vertex_shader").textContent;
+      console.log(vertex_shader_code);
+      var vertex_shader = gl.createShader(gl.VERTEX_SHADER);
+      gl.shaderSource(vertex_shader, vertex_shader_code);
+      gl.compileShader(vertex_shader);
+      // ---------------------------处理顶点着色器------------------------------
+
+      // ---------------------------处理片元着色器------------------------------
+      var fragment_shader_code =
+        document.getElementById("fragment_shader").textContent;
+      console.log(fragment_shader_code);
+      var fragment_shader = gl.createShader(gl.FRAGMENT_SHADER);
+      gl.shaderSource(fragment_shader, fragment_shader_code);
+      gl.compileShader(fragment_shader);
+      // ---------------------------处理片元着色器------------------------------
+
+      // ---------------------------运行着色器----------------------------------
+      var program = gl.createProgram();
+      gl.attachShader(program, vertex_shader);
+      gl.attachShader(program, fragment_shader);
+      gl.linkProgram(program);
+      gl.useProgram(program);
+      // ---------------------------运行着色器----------------------------------
+
+      //
+      var a_PointVertex = gl.getAttribLocation(program, "a_PointVertex");
+      gl.vertexAttribPointer(a_PointVertex, 2, gl.FLOAT, false, 0, 0);
+      gl.enableVertexAttribArray(a_PointVertex);
+
+      //
+      gl.drawArrays(gl.POINTS, 0, pointCount);
+    </script>
+  </body>
+</html>

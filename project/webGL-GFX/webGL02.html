@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      canvas {
+        border: 1px solid #000000;
+        width: 300px;
+        height: 300px;
+      }
+    </style>
+  </head>
+  <script src="./webgl-utils.js"></script>
+  <body>
+    <canvas id="c"></canvas>
+
+    <script id="vertex-shader-2d" type="myshader">
+      attribute vec2 a_position;
+      uniform vec2 u_resolution;
+
+      void main() {
+        // 从像素坐标转换到 0.0 到 1.0
+        vec2 zeroToOne = a_position / u_resolution;
+
+        // 再把 0->1 转换 0->2
+        vec2 zeroToTwo = zeroToOne * 2.0;
+
+        // 把 0->2 转换到 -1->+1 (裁剪空间)
+        vec2 clipSpace = zeroToTwo - 1.0;
+
+        gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+      }
+    </script>
+
+    <script id="fragment-shader-2d" type="myshader">
+      precision mediump float;
+
+      uniform vec4 u_color;
+
+      void main() {
+        gl_FragColor = u_color;
+      }
+    </script>
+
+    <script>
+      function main() {
+        // --------------------------初始化代码-----------------------------
+        // 获取webGL上下文
+        var canvas = document.querySelector("#c");
+        var gl = canvas.getContext("webgl");
+        if (!gl) {
+          return;
+        }
+
+        // 使用utils库来编译着色器并链接到程序中
+        var program = webglUtils.createProgramFromScripts(gl, [
+          "vertex-shader-2d",
+          "fragment-shader-2d",
+        ]);
+
+        // 从着色器程序中查找‘a_position’属性的所在位置
+        var positionAttributeLocation = gl.getAttribLocation(
+          program,
+          "a_position"
+        );
+
+        // look up uniform locations
+        var resolutionUniformLocation = gl.getUniformLocation(
+          program,
+          "u_resolution"
+        );
+        var colorUniformLocation = gl.getUniformLocation(program, "u_color");
+
+        // 因为属性值从缓存中获取数据，所以创建一个缓冲区
+        var positionBuffer = gl.createBuffer();
+
+        // 将缓存区绑定到ARRAY_BUFFER（可以将其看作ARRAY_BUFFER = positionBuffer）
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+        // --------------------------初始化代码-----------------------------
+        // --------------------------渲染代码-------------------------------
+
+        // 调整画布（canvas）的尺寸
+        webglUtils.resizeCanvasToDisplaySize(gl.canvas);
+
+        // 告诉WebGL如何从剪辑空间转换为像素(这样就告诉WebGL裁剪空间的 -1 -> +1 分别对应到x轴的 0 -> gl.canvas.width 和y轴的 0 -> gl.canvas.height)
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+        // 清空画布
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        // 告诉它用我们之前写好的着色程序（一个着色器对）
+        gl.useProgram(program);
+
+        // 启用顶点属性
+        gl.enableVertexAttribArray(positionAttributeLocation);
+
+        // 将绑定点绑定到缓冲数据（positionBuffer）
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+        // 告诉属性怎么从positionBuffer中读取数据 (ARRAY_BUFFER)
+        var size = 2; // // 每次迭代运行提取两个单位数据
+        var type = gl.FLOAT; // 每个单位的数据类型是32位浮点型
+        var normalize = false; // 不需要归一化数据
+        var stride = 0; //  0 = 移动单位数量 * 每个单位占用内存（sizeof(type)），每次迭代运行运动多少内存到下一个数据开始点
+        var offset = 0; // 从缓冲起始位置开始读取
+        gl.vertexAttribPointer(
+          positionAttributeLocation,
+          size,
+          type,
+          normalize,
+          stride,
+          offset
+        );
+
+        // set the resolution
+        gl.uniform2f(
+          resolutionUniformLocation,
+          gl.canvas.width,
+          gl.canvas.height
+        );
+
+        // 用随机的颜色画50个随机的矩形
+        for (var ii = 0; ii < 50; ++ii) {
+          // 设置一个随机的矩形
+          setRectangle(
+            gl,
+            randomInt(100),
+            randomInt(100),
+            randomInt(100),
+            randomInt(100)
+          );
+
+          // 设置随机的颜色
+          gl.uniform4f(
+            colorUniformLocation,
+            Math.random(),
+            Math.random(),
+            Math.random(),
+            1
+          );
+
+          // 绘制矩形
+          var primitiveType = gl.TRIANGLES;
+          var offset = 0;
+          var count = 6;
+          gl.drawArrays(primitiveType, offset, count);
+        }
+      }
+
+      // 返回一个从0到范围- 1的随机整数
+      function randomInt(range) {
+        return Math.floor(Math.random() * range);
+      }
+
+      // 用定义矩形的值填充缓冲区
+      function setRectangle(gl, x, y, width, height) {
+        var x1 = x;
+        var x2 = x + width;
+        var y1 = y;
+        var y2 = y + height;
+        gl.bufferData(
+          gl.ARRAY_BUFFER,
+          new Float32Array([x1, y1, x2, y1, x1, y2, x1, y2, x2, y1, x2, y2]),
+          gl.STATIC_DRAW
+        );
+      }
+
+      main();
+    </script>
+  </body>
+</html>
